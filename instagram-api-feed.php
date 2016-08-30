@@ -5,7 +5,7 @@ Description: Instagram Feed Plugin that pulls the user information and the recen
 Plugin URI: http://www.niklasdahlqvist.com
 Author: Niklas Dahlqvist
 Author URI: http://www.niklasdahlqvist.com
-Version: 1.0.0
+Version: 1.2.0
 Requires at least: 4.2
 License: GPL
 */
@@ -155,7 +155,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
 
       update_option( 'instagram_settings', $this->options );
 
-      wp_redirect( admin_url('tools.php?page=instagram-settings-admin') ); 
+      wp_redirect( admin_url('tools.php?page=instagram-settings-admin') );
       exit;
 
     }
@@ -167,10 +167,10 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
     {
         // This page will be under "Settings"
         add_management_page(
-            'Instagram Settings Admin', 
-            'Instagram Settings', 
-            'manage_options', 
-            'instagram-settings-admin', 
+            'Instagram Settings Admin',
+            'Instagram Settings',
+            'manage_options',
+            'instagram-settings-admin',
             array( $this, 'create_admin_page' )
         );
     }
@@ -182,17 +182,20 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
     {
         // Set class property
         $this->options = get_option( 'instagram_settings' );
+        $this->getInstagramLoginLink();
         ?>
         <div class="wrap instagram-settings">
-            <h2>Instagram Settings</h2>           
+            <h2>Instagram Settings</h2>
             <form method="post" action="options.php">
             <?php
                 // This prints out all hidden setting fields
-                settings_fields( 'instagram_settings_group' );   
+                settings_fields( 'instagram_settings_group' );
                 do_settings_sections( 'instagram-settings-admin' );
-                if($this->checkInstagramOauth() == false) {
+
+
+                //if($this->checkInstagramOauth() == false) {
                   $this->getInstagramLoginLink();
-                }
+                //}
                 submit_button();
             ?>
             </form>
@@ -204,7 +207,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
      * Register and add settings
      */
     public function page_init()
-    {        
+    {
         register_setting(
             'instagram_settings_group', // Option group
             'instagram_settings', // Option name
@@ -216,55 +219,58 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
             'instagram Settings', // Title
             array( $this, 'print_section_info' ), // Callback
             'instagram-settings-admin' // Page
-        );  
+        );
 
         add_settings_field(
             'instagram_api_client_id', // ID
-            'Instagram API Client ID', // Title 
+            'Instagram API Client ID', // Title
             array( $this, 'instagram_api_client_id_callback' ), // Callback
             'instagram-settings-admin', // Page
-            'instagram_section' // Section           
-        );      
+            'instagram_section' // Section
+        );
 
         add_settings_field(
-            'instagram_api_client_secret', 
-            'Instagram API Client Secret', 
-            array( $this, 'instagram_api_client_secret_callback' ), 
-            'instagram-settings-admin', 
+            'instagram_api_client_secret',
+            'Instagram API Client Secret',
+            array( $this, 'instagram_api_client_secret_callback' ),
+            'instagram-settings-admin',
             'instagram_section'
         );
 
         add_settings_field(
-            'instagram_redirect_uri', 
-            'Instagram Redirect URI', 
-            array( $this, 'instagram_redirect_uri_callback' ), 
-            'instagram-settings-admin', 
+            'instagram_redirect_uri',
+            'Instagram Redirect URI',
+            array( $this, 'instagram_redirect_uri_callback' ),
+            'instagram-settings-admin',
             'instagram_section'
         );
 
-        add_settings_field(
-            'instagram_username', 
-            'Instagram Username', 
-            array( $this, 'instagram_username_callback' ), 
-            'instagram-settings-admin', 
-            'instagram_section'
-        );
+        if($this->checkInstagramOauth() == true) {
 
-        add_settings_field(
-            'instagram_user_id', 
-            'Instagram User ID', 
-            array( $this, 'instagram_user_id_callback' ), 
-            'instagram-settings-admin', 
-            'instagram_section'
-        );
+          add_settings_field(
+              'instagram_username',
+              'Instagram Username',
+              array( $this, 'instagram_username_callback' ),
+              'instagram-settings-admin',
+              'instagram_section'
+          );
 
-        add_settings_field(
-            'instagram_access_token', 
-            'Instagram Access Token', 
-            array( $this, 'instagram_access_token_callback' ), 
-            'instagram-settings-admin', 
-            'instagram_section'
-        );      
+          add_settings_field(
+              'instagram_user_id',
+              'Instagram User ID',
+              array( $this, 'instagram_user_id_callback' ),
+              'instagram-settings-admin',
+              'instagram_section'
+          );
+
+          add_settings_field(
+              'instagram_access_token',
+              'Instagram Access Token',
+              array( $this, 'instagram_access_token_callback' ),
+              'instagram-settings-admin',
+              'instagram_section'
+          );
+        }
     }
 
     /**
@@ -296,14 +302,14 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
         return $new_input;
     }
 
-    /** 
+    /**
      * Print the Section text
      */
     public function print_section_info() {
       print 'Enter your settings below:';
     }
 
-    /** 
+    /**
      * Get the settings option array and print one of its values
      */
     public function instagram_api_client_id_callback()
@@ -314,7 +320,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
         );
     }
 
-    /** 
+    /**
      * Get the settings option array and print one of its values
      */
     public function instagram_api_client_secret_callback()
@@ -333,7 +339,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
         );
     }
 
-    
+
 
     public function instagram_username_callback() {
       if($this->checkInstagramOauth() == true) {
@@ -342,7 +348,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
             isset( $this->options['instagram_username'] ) ? esc_attr( $this->options['instagram_username']) : ''
         );
       }
-        
+
     }
 
     public function instagram_user_id_callback() {
@@ -351,7 +357,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
             '<input type="text" id="instagram_user_id" name="instagram_settings[instagram_user_id]" value="%s" />',
             isset( $this->options['instagram_user_id'] ) ? esc_attr( $this->options['instagram_user_id']) : ''
         );
-      }  
+      }
     }
 
     public function instagram_access_token_callback() {
@@ -363,7 +369,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
       }
     }
 
-    
+
 
     public function storeInstagramUserInformation($user) {
 
@@ -384,7 +390,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
         $instagram_feed = serialize($instagram_data);
         set_transient( 'instagram_feed', $instagram_feed, 2 * HOUR_IN_SECONDS );
       }
-      
+
     }
 
     public function flushStoredInformation() {
@@ -421,7 +427,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
 
       if(!empty($instagramFeed)) {
         $i = 1;
-        $output .= '<ul class="instagram-feed">';      
+        $output .= '<ul class="instagram-feed">';
           foreach ($instagramFeed as $insta_item) {
             if($i <= $args['count']) {
               $output .= '<li data-likes="'. $insta_item['likes'] .'">';
@@ -430,11 +436,11 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
             }
             $i++;
           }
-  
+
         $output .= '</ul>';
       }
 
-      
+
 
       return $output;
     }
@@ -444,7 +450,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
       // Get any existing copy of our transient data
       if ( false === ( $instagram_data = get_transient( 'instagram_user_information' ) ) ) {
         // It wasn't there, so make a new API Request and regenerate the data
-        
+
         $instagram = $this->setupInstagramClient();
         $instagram->setAccessToken($this->instagram_access_token);
         $user = $instagram->getUser();
@@ -466,7 +472,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
 
       // Get any existing copy of our transient data
       if ( false === ( $instagram_data = get_transient( 'instagram_feed' ) ) ) {
-        
+
         // It wasn't there, so make a new API Request and regenerate the data
         $instagram_data = array();
         $instagram = $this->setupInstagramClient();
@@ -494,7 +500,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
               array_push($instagram_data, $insta_item);
 
             }
-            
+
           }
         }
 
@@ -508,7 +514,7 @@ if(! class_exists ("Instagram_Feed_Plugin") ) {
 
       // Finally return the data
       return $instagram_data;
-      
+
     }
 
    //Returns the url of the plugin's root folder
